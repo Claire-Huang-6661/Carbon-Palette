@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carbon Palette | Designer Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --sage: #B5BAA1;
+            --volt: #D9FF00;
+            --slate-deep: #12141D;
+        }
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            overflow: hidden;
+            background-color: var(--sage);
+            color: var(--slate-deep);
+            height: 100vh;
+            margin: 0;
+        }
+        .plate-realistic {
+            background: radial-gradient(circle at 30% 30%, #ffffff 0%, #fcfcfc 45%, #f0f0f0 100%);
+            box-shadow: 
+                0 60px 100px -20px rgba(0,0,0,0.15),
+                inset 0 -10px 20px rgba(0,0,0,0.03),
+                inset 0 5px 15px rgba(255,255,255,1);
+            position: relative;
+        }
+        .plate-realistic::after {
+            content: '';
+            position: absolute;
+            inset: 12%;
+            border-radius: 50%;
+            border: 1px solid rgba(0,0,0,0.04);
+            box-shadow: inset 0 4px 12px rgba(0,0,0,0.01);
+            pointer-events: none;
+        }
+        .scroll-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scroll-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        @keyframes plate-impact-shake {
+            0% { transform: scale(1); }
+            10% { transform: scale(0.99) translateY(2px); }
+            20% { transform: scale(1.01) rotate(0.5deg); }
+            30% { transform: scale(1) rotate(-0.5deg); }
+            40% { transform: scale(1.005) translateY(-1px); }
+            100% { transform: scale(1); }
+        }
+        .animate-plate-impact {
+            animation: plate-impact-shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        /* Smoothing drag performance */
+        .drag-active * {
+            pointer-events: none !important;
+        }
+
+        * { 
+            transition-property: background-color, border-color, opacity, box-shadow, transform; 
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); 
+            transition-duration: 200ms; 
+        }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "recharts": "https://esm.sh/recharts@^3.7.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "lucide-react": "https://esm.sh/lucide-react@^0.564.0",
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "react": "https://esm.sh/react@^19.2.4"
+  }
+}
+</script>
+</head>
+<body>
+    <div id="root"></div>
+</body>
+</html>
