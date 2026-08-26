@@ -1,5 +1,5 @@
 {
-  "name": "Copy of Carbon Palette 3",
-  "description": "An interactive carbon footprint simulator allowing users to compose meals and visualize the relationship between cost, nutrition, and environmental impact.",
+  "name": "BannerForge",
+  "description": "上传头图或 Banner，自动识别画面中的文字区域并替换成新文案，背景也可整张替换成新图、渐变或纯色。全部处理在浏览器本地完成。",
   "requestFramePermissions": []
 }
