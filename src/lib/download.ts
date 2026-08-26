@@ -16,6 +16,54 @@ export function canvasToBlob(
   });
 }
 
+interface HostDownloads {
+  save(request: { filename: string; data: Blob }): Promise<{ status: 'saved' }>;
+}
+
+/**
+ * Some embedders (the claude.ai artifact viewer among them) sandbox the frame
+ * so a download the page starts itself never reaches the viewer, and instead
+ * expose a host-mediated save. Resolve it once at load — outside such a host
+ * `window.claude` is absent and this settles to null immediately, so the
+ * export click never waits on it.
+ */
+const hostDownloads: Promise<HostDownloads | null> = (async () => {
+  const host = (window as unknown as { claude?: { use?: (name: string) => Promise<unknown> } })
+    .claude;
+  if (!host?.use) return null;
+  try {
+    return ((await host.use('downloads')) as HostDownloads | null) ?? null;
+  } catch {
+    return null;
+  }
+})();
+
+export type SaveOutcome = 'saved' | 'declined' | 'too-large' | 'browser';
+
+/**
+ * Hands the file to the viewer by whichever route this context allows.
+ * `browser` means the plain download was triggered — which the caller should
+ * back up with a visible copy of the result, since embedders can swallow it.
+ */
+export async function saveImage(blob: Blob, filename: string): Promise<SaveOutcome> {
+  const downloads = await hostDownloads;
+
+  if (downloads) {
+    try {
+      await downloads.save({ filename, data: blob });
+      return 'saved';
+    } catch (error) {
+      const code = (error as { code?: string } | null)?.code;
+      if (code === 'declined') return 'declined';
+      if (code === 'too_large') return 'too-large';
+      // Anything else: fall through and let the browser try.
+    }
+  }
+
+  downloadBlob(blob, filename);
+  return 'browser';
+}
+
 export function downloadBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');

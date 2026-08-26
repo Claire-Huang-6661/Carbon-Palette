@@ -3,7 +3,13 @@ import { Check, Clipboard, Download, X } from 'lucide-react';
 import type { Doc } from '../types';
 import type { RenderDeps } from '../lib/render';
 import { renderToCanvas } from '../lib/render';
-import { canvasToBlob, copyCanvasToClipboard, downloadBlob, type ExportFormat } from '../lib/download';
+import {
+  canvasToBlob,
+  copyCanvasToClipboard,
+  saveImage,
+  type ExportFormat,
+  type SaveOutcome,
+} from '../lib/download';
 import { formatBytes } from '../lib/image';
 import { Button, Field, Section, Segmented, Slider } from './ui';
 
@@ -22,9 +28,17 @@ export default function ExportDialog({
   const [size, setSize] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [fallbackUrl, setFallbackUrl] = useState<string | null>(null);
+  const [outcome, setOutcome] = useState<SaveOutcome | null>(null);
 
   const width = Math.round(doc.width * scale);
   const height = Math.round(doc.height * scale);
+
+  useEffect(() => {
+    return () => {
+      if (fallbackUrl) URL.revokeObjectURL(fallbackUrl);
+    };
+  }, [fallbackUrl]);
 
   // Estimate the output size so the quality slider means something.
   useEffect(() => {
@@ -47,7 +61,20 @@ export default function ExportDialog({
       const blob = await canvasToBlob(canvas, format, quality);
       if (blob) {
         const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '');
-        downloadBlob(blob, `banner-${stamp}.${format === 'jpeg' ? 'jpg' : format}`);
+        const result = await saveImage(
+          blob,
+          `banner-${stamp}.${format === 'jpeg' ? 'jpg' : format}`,
+        );
+        setOutcome(result);
+
+        // A plain browser download can be swallowed by an embedder without any
+        // error, so leave the result on screen to be saved by hand.
+        if (result !== 'saved') {
+          setFallbackUrl((previous) => {
+            if (previous) URL.revokeObjectURL(previous);
+            return URL.createObjectURL(blob);
+          });
+        }
       }
     } finally {
       setBusy(false);
@@ -67,7 +94,7 @@ export default function ExportDialog({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-sm animate-fade-up overflow-hidden rounded-2xl border border-[#262B38] bg-[#14171F] shadow-2xl"
+        className="scroll-thin max-h-[88vh] w-full max-w-sm animate-fade-up overflow-y-auto rounded-2xl border border-[#262B38] bg-[#14171F] shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-[#20242F] px-4 py-3">
@@ -113,6 +140,29 @@ export default function ExportDialog({
             {size !== null ? ` · 约 ${formatBytes(size)}` : ''}
           </p>
         </Section>
+
+        {outcome === 'saved' ? (
+          <div className="border-t border-[#20242F] px-4 py-3">
+            <p className="text-[11px] leading-relaxed text-[#9BD64A]">已保存到你的下载目录。</p>
+          </div>
+        ) : null}
+
+        {fallbackUrl ? (
+          <div className="border-t border-[#20242F] px-4 py-3">
+            <img
+              src={fallbackUrl}
+              alt="导出结果"
+              className="w-full rounded-lg border border-[#2A303D]"
+            />
+            <p className="mt-2 text-[11px] leading-relaxed text-[#69727F]">
+              {outcome === 'too-large'
+                ? '文件超过 16MB，无法直接保存。可以在上图点右键「图片另存为」，或改用 JPG / 更小的尺寸。'
+                : outcome === 'declined'
+                  ? '你取消了保存。想再来一次可以点上面的「下载」，或在上图点右键「图片另存为」。'
+                  : '没有自动下载？在上面这张图上点右键「图片另存为」即可保存。'}
+            </p>
+          </div>
+        ) : null}
 
         <div className="flex gap-2 p-4">
           <Button variant="ghost" className="flex-1" onClick={handleCopy}>
