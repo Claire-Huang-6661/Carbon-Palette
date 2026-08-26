@@ -1,20 +1,57 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# BannerForge · 头图文字与背景替换平台
 
-# Run and deploy your AI Studio app
+上传一张头图 / Banner，平台会自动框出画面里的文字区域，一键抹掉原有文案换成你自己的内容；
+背景也能整张替换成新图、渐变或纯色。全部处理都在浏览器本地完成，图片不会上传到任何服务器。
 
-This contains everything you need to run your app locally.
+## 能做什么
 
-View your app in AI Studio: https://ai.studio/apps/drive/1VHlG29eGacVmMtaMepZcOnlfkK6rgQN3
+| 能力 | 说明 |
+| --- | --- |
+| 自动识别文字 | 基于边缘密度的检测，框出画面中的文案区域，无需任何 API |
+| 智能抹除 | 从区域四周向内插值补全背景，纯色与渐变几乎无痕；照片背景可切换为模糊填充 |
+| 保留按钮 / 徽章 | 识别出文字所在的色块（按钮、标签），量出它的颜色与圆角并原样重建 |
+| 自动配色 | 从原图取出文字色与周围底色，替换后的文案默认沿用原来的配色 |
+| 文字排版 | 中英文断行、自动缩放适应文本框、字重 / 行高 / 字间距 / 描边 / 投影 / 底色块 |
+| 图片替换 | 框选画面中的某块区域，换成另一张图片，支持裁剪方式、圆角与滤镜 |
+| 背景替换 | 换成新图（缩放 / 偏移 / 模糊 / 亮度 / 饱和度）、渐变或纯色，并可叠加色彩蒙层 |
+| 导出 | PNG / JPG / WebP，支持 50% / 原尺寸 / 2× ，导出结果与画布预览完全一致 |
 
-## Run Locally
+## 本地运行
 
-**Prerequisites:**  Node.js
+```bash
+npm install
+npm run dev      # http://localhost:3000
+```
 
+其他命令：
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+```bash
+npm run build      # 生产构建
+npm run typecheck  # 类型检查
+```
+
+## 使用流程
+
+1. 拖入图片、点「选择图片」，或直接 `Ctrl / ⌘ + V` 粘贴。没有素材可以点「载入示例 Banner」。
+2. 点左侧的「识别」，画面上会出现虚线候选框。鼠标移上去可以选择「替换此处」或「忽略」，
+   也可以直接用「全部替换」/「全部抹除」。
+3. 在右侧面板改文案、字体和颜色。识别不到的地方，用「替换文字」工具在画布上手动框选。
+4. 切到「背景」标签替换背景。换背景后文字图层会保留在原位置。
+5. 点右上角「导出」下载成品。
+
+快捷键：`V` 选择、`T` 替换文字、`I` 替换图片、`⌘Z` 撤销、`⇧⌘Z` 重做、`⌘D` 复制图层、
+方向键微调位置（按住 `Shift` 每次移动 10px）、`Delete` 删除图层。
+
+## 实现要点
+
+- **文字检测**（`src/lib/textDetect.ts`）：Sobel 梯度 → 分位数阈值 → 水平方向形态学膨胀
+  把同一行的字粘成一块 → 连通域分析 → 按尺寸、长宽比和笔画密度筛选。
+  误检的代价很低，因为最终由用户决定处理哪些框。
+- **抹除填充**（`src/lib/inpaint.ts`）：默认从矩形四条边界向内做反距离平方加权插值，
+  纯色和渐变背景能近乎精确地还原；照片背景可切换成「模糊」模式。
+- **底色块还原**（`src/lib/color.ts`）：找出区域内离环境色最远的主色团，用实心度区分
+  「按钮底色」和「文字本身」；圆角半径由面积反推——圆角矩形相对其外接框会少掉 `(4 - π)r²`。
+- **渲染**（`src/lib/render.ts`）：预览和导出共用同一个绘制函数，只是缩放系数不同，
+  排版计算固定在 1 倍尺度下进行，因此换行位置在预览和导出中完全一致。
+
+`legacy/` 目录是本仓库此前的 Carbon Palette 应用，已归档保留，不参与构建。
